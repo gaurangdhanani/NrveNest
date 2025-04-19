@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   buttonText: {
-    color: '#fff',
+    color: '#f5f2f0',
     fontSize: 20,
     fontFamily: 'EasyCalm',
   },  

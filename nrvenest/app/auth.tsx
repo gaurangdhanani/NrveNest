@@ -1,31 +1,110 @@
-// app/auth.tsx
+import {
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Dimensions,
+  ScrollView,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 
-import { StyleSheet, Text, View } from 'react-native';
+const { height } = Dimensions.get('window');
 
 export default function AuthScreen() {
+  const router = useRouter();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to NervNest</Text>
-      <Text style={styles.subtitle}>Login or Sign Up</Text>
-      {/* Add your login/signup logic here */}
-    </View>
+    <ImageBackground
+      source={require('../assets/images/Bg.jpg')}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <ScrollView
+        contentContainerStyle={styles.overlay}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>You're One Step Closer</Text>
+
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor="#aaa"
+          style={styles.input}
+        />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          style={styles.input}
+        />
+
+        <TouchableOpacity style={styles.button}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/signup')}>
+          <Text style={styles.link}>
+            Don’t have an account
+            <Text style={{ fontFamily: 'SpaceMono', fontStyle: 'italic' }}>?</Text>{' '}
+            <Text style={styles.linkBold}>Sign up</Text>
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  background: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 32,
+    paddingTop: height * 0.1,
+    paddingBottom: height * 0.1,
+    gap: 16,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    color: '#EDB240',
+    fontFamily: 'EasyCalm',
+    textAlign: 'center',
   },
-  subtitle: {
+  input: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
     fontSize: 16,
+    fontFamily: 'SpaceMono',
+    color: '#333',
+  },
+  button: {
+    backgroundColor: '#EDB240',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 24,
+  },
+  buttonText: {
+    color: '#f5f2f0',
+    fontSize: 18,
+    fontFamily: 'EasyCalm',
+  },
+  link: {
     color: '#555',
+    fontSize: 14,
+    fontFamily: 'EasyCalm',
+    textAlign: 'center',
+  },
+  linkBold: {
+    fontWeight: 'bold',
+    color: '#EDB240',
   },
 });
