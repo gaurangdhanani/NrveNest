@@ -1,5 +1,6 @@
+// src/app/index.tsx
+
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -7,21 +8,22 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Modal,
   ScrollView,
   ImageBackground,
+  SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
 import { useFonts } from 'expo-font';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import Svg, { Path, Circle } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ActivityType, Quest } from './types';
+import { useFocusEffect } from '@react-navigation/native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
+
 
 const { width, height } = Dimensions.get('window');
 
-
-// Color palette matching the provided code
+// Color palette
 const COLORS = {
   primary: '#edb240', // Golden/amber color
   background: '#f5f2f0', // Light beige
@@ -31,45 +33,6 @@ const COLORS = {
   accent3: '#9bf6ff', // Light cyan
   overlay: 'rgba(245, 242, 240, 0.7)', // Transparent beige
 };
-
-// Activity types
-enum ActivityType {
-  BREATHING = 'breathing',
-  GRATITUDE = 'gratitude',
-  AFFIRMATION = 'affirmation',
-}
-
-// Interface for activities
-interface Activity {
-  id: string;
-  type: ActivityType;
-  title: string;
-  description: string;
-  color: string;
-  completed: boolean;
-}
-
-// Affirmations list
-const AFFIRMATIONS = [
-  "I am worthy of peace and happiness",
-  "I trust my journey and embrace new possibilities",
-  "I celebrate my progress, no matter how small",
-  "Today I choose joy over worry",
-  "I nurture my mind as I nurture my garden",
-];
-
-// Breathing patterns
-const BREATHING_PATTERNS = [
-  { name: "Four-Seven-Eight Technique", inhale: 4, hold: 7, exhale: 8 },
-  { name: "Box Breathing", inhale: 4, hold: 4, exhale: 4 },
-];
-
-// Gratitude prompts
-const GRATITUDE_PROMPTS = [
-  "What made you smile today?",
-  "Who has helped you recently?",
-  "What simple pleasure are you grateful for?",
-];
 
 // Collection of inspirational quotes
 const QUOTES = [
@@ -90,149 +53,124 @@ const QUOTES = [
   { text: "Mindfulness isn't difficult, we just need to remember to do it.", author: "Sharon Salzberg" }
 ];
 
-const MindfulMomentsGame: React.FC = () => {
-    const router = useRouter();
+const MindfulMomentsHome: React.FC = () => {
+  const router = useRouter();
+  
   // Load custom font
   const [fontsLoaded] = useFonts({
     EasyCalm: require('../assets/fonts/EasyCalm.ttf'),
   });
 
   // State variables
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [mood, setMood] = useState<number | null>(null);
   const [moodFeedback, setMoodFeedback] = useState<string>('');
-  const [breathCount, setBreathCount] = useState<number>(0);
-  const [breathPhase, setBreathPhase] = useState<string>("inhale");
-  const [selectedPattern, setSelectedPattern] = useState(0);
-  const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
-  const [currentAffirmation, setCurrentAffirmation] = useState<string>(AFFIRMATIONS[0]);
   const [selectedQuote, setSelectedQuote] = useState(QUOTES[0]);
+  const [streak, setStreak] = useState<number>(0);
+  
   
   // Animation values
-  const breathAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Initialize activities and select a random quote
-  useEffect(() => {
-    const initialActivities: Activity[] = [
-      {
-        id: '1',
-
-        type: ActivityType.BREATHING,
-        title: 'Calm Breathing',
-        description: 'Practice deep breathing to reduce stress and anxiety.',
-        color: COLORS.accent3,
-        completed: false,
-      },
-      {
-        id: '2',
-        type: ActivityType.GRATITUDE,
-        title: 'Gratitude Practice',
-        description: 'Note three things youre grateful for today.',
-        color: COLORS.primary,
-        completed: false,
-      },
-      {
-        id: '3',
-        type: ActivityType.AFFIRMATION,
-        title: 'Daily Affirmation',
-        description: 'Strengthen your mindset with positive self-talk.',
-        color: COLORS.accent2,
-        completed: false,
-      },
-    ];
-
-    setActivities(initialActivities);
-    
-    // Select a random quote
-    const randomIndex = Math.floor(Math.random() * QUOTES.length);
-    setSelectedQuote(QUOTES[randomIndex]);
-  }, []);
-
-  // Entry animations
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  // Animation for breathing exercise
-  useEffect(() => {
-    if (currentActivity?.type === ActivityType.BREATHING && showModal) {
-      const pattern = BREATHING_PATTERNS[selectedPattern];
-      
-      if (breathPhase === "inhale") {
-        Animated.timing(breathAnim, {
-          toValue: 1,
-          duration: pattern.inhale * 1000,
-          useNativeDriver: false,
-        }).start(() => {
-          setBreathPhase("hold");
-        });
-      } 
-      else if (breathPhase === "hold") {
-        Animated.timing(breathAnim, {
-          toValue: 1,
-          duration: pattern.hold * 1000,
-          useNativeDriver: false,
-        }).start(() => {
-          setBreathPhase("exhale");
-        });
-      } 
-      else if (breathPhase === "exhale") {
-        Animated.timing(breathAnim, {
-          toValue: 0,
-          duration: pattern.exhale * 1000,
-          useNativeDriver: false,
-        }).start(() => {
-          setBreathCount(prev => prev + 1);
-          setBreathPhase("inhale");
-        });
-      }
-    }
-  }, [breathPhase, showModal, currentActivity, selectedPattern]);
-
-  // Start an activity
-  const startActivity = (activity: Activity) => {
-    setCurrentActivity(activity);
-    
-    // Reset activity-specific states
-    if (activity.type === ActivityType.BREATHING) {
-      setBreathCount(0);
-      setBreathPhase("inhale");
-      breathAnim.setValue(0);
-    } 
-    else if (activity.type === ActivityType.GRATITUDE) {
-      setGratitudeItems([]);
-    }
-    
-    setShowModal(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  // Complete current activity
-  const completeActivity = () => {
-    if (!currentActivity) return;
-    
-    // Update activity as completed
-    setActivities(current => 
-      current.map(act => 
-        act.id === currentActivity.id 
-          ? { ...act, completed: true } 
-          : act
-      )
-    );
-    
-    // Close modal
-    setShowModal(false);
-    setCurrentActivity(null);
-    
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
+  // Initialize quests and select a random quote
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadData = async () => {
+        const randomIndex = Math.floor(Math.random() * QUOTES.length);
+        setSelectedQuote(QUOTES[randomIndex]);
+  
+        try {
+          const questsData = await AsyncStorage.getItem('quests');
+          const savedQuests = questsData ? JSON.parse(questsData) : null;
+  
+          const streakData = await AsyncStorage.getItem('streak');
+          if (streakData) {
+            const streakInfo = JSON.parse(streakData);
+            setStreak(streakInfo.currentStreak || 0);
+          }
+  
+          const breathingProgress = await AsyncStorage.getItem('breathingProgress');
+          const gratitudeItems = await AsyncStorage.getItem('gratitudeItems');
+          const gameProgress = await AsyncStorage.getItem('gameProgress');
+          const meditationProgress = await AsyncStorage.getItem('meditationProgress');
+          const thoughtBubblesProgress = await AsyncStorage.getItem('thoughtBubblesProgress');
+  
+          const questsArray: Quest[] = [
+            {
+              id: '1',
+              type: ActivityType.BREATHING,
+              title: 'Calm Breathing',
+              description: 'Complete 3 breathing exercises',
+              color: COLORS.accent3,
+              totalSteps: 3,
+              completedSteps: savedQuests?.breathingSteps || JSON.parse(breathingProgress || '0'),
+              completed: savedQuests ? savedQuests[ActivityType.BREATHING] : false,
+              icon: 'lungs'
+            },
+            {
+              id: '2',
+              type: ActivityType.GRATITUDE,
+              title: 'Gratitude Practice',
+              description: 'Note 3 things you\'re grateful for',
+              color: COLORS.primary,
+              totalSteps: 3,
+              completedSteps: savedQuests?.gratitudeSteps || JSON.parse(gratitudeItems || '[]').length,
+              completed: savedQuests ? savedQuests[ActivityType.GRATITUDE] : false,
+              icon: 'hand-heart'
+            },
+            {
+              id: '3',
+              type: ActivityType.GAME,
+              title: 'Memory Game',
+              description: 'Complete 3 memory games',
+              color: COLORS.accent1,
+              totalSteps: 3,
+              completedSteps: savedQuests?.gameSteps || JSON.parse(gameProgress || '0'),
+              completed: savedQuests ? savedQuests[ActivityType.GAME] : false,
+              icon: 'puzzle'
+            },
+            {
+              id: '4',
+              type: ActivityType.MEDITATION,
+              title: 'Meditation Timer',
+              description: 'Complete 3 meditation sessions',
+              color: COLORS.accent2,
+              totalSteps: 3,
+              completedSteps: savedQuests?.meditationSteps || JSON.parse(meditationProgress || '0'),
+              completed: savedQuests ? savedQuests[ActivityType.MEDITATION] : false,
+              icon: 'meditation'
+            },
+            {
+              id: '5',
+              type: ActivityType.THOUGHT_BUBBLES,
+              title: 'Thought Bubbles',
+              description: 'Pop bubbles to reframe thoughts',
+              color: COLORS.accent2,
+              totalSteps: 3,
+              completedSteps: savedQuests?.thoughtBubblesSteps || JSON.parse(thoughtBubblesProgress || '0'),
+              completed: savedQuests ? savedQuests[ActivityType.THOUGHT_BUBBLES] : false,
+              icon: 'comment-processing-outline'
+            }
+          ];
+          
+          ;
+  
+          setQuests(questsArray);
+        } catch (error) {
+          console.error('Failed to load data:', error);
+        }
+      };
+  
+      loadData();
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start();
+  
+    }, [])
+  );
+  
 
   // Handle mood selection and provide feedback
   const handleMoodSelection = (value: number) => {
@@ -258,193 +196,89 @@ const MindfulMomentsGame: React.FC = () => {
       default:
         setMoodFeedback("");
     }
-    
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // Add gratitude item
-  const addGratitudeItem = (item: string) => {
-    // In a real app, would use TextInput for user entry
-    // Using preset values for demo
-    const presetItems = [
-      "The beautiful sunset I saw today",
-      "My supportive friend who called me",
-      "The delicious meal I enjoyed"
-    ];
-    
-    const newItem = item || presetItems[gratitudeItems.length];
-    setGratitudeItems([...gratitudeItems, newItem]);
-  };
-
-  // Render activity content based on type
-  const renderActivityContent = () => {
-    if (!currentActivity) return null;
-
-    switch (currentActivity.type) {
+  // Navigate to quest page
+  const navigateToQuest = (questType: ActivityType) => {
+    switch (questType) {
       case ActivityType.BREATHING:
-        return (
-          <View style={styles.activityContent}>
-            <Text style={styles.activityTitle}>Breathing Exercise</Text>
-            <Text style={styles.activityDescription}>
-              Follow the circle as it expands and contracts
-            </Text>
-            
-            <View style={styles.patternSelector}>
-              {BREATHING_PATTERNS.map((pattern, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={[
-                    styles.patternButton,
-                    selectedPattern === idx && { backgroundColor: currentActivity.color }
-                  ]}
-                  onPress={() => setSelectedPattern(idx)}
-                >
-                  <Text style={styles.patternText}>{pattern.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            
-            <View style={styles.breathingContainer}>
-              <Animated.View
-                style={[
-                  styles.breathCircle,
-                  {
-                    borderColor: currentActivity.color,
-                    transform: [
-                      {
-                        scale: breathAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [1, 1.5]
-                        })
-                      }
-                    ]
-                  }
-                ]}
-              >
-                <Text style={styles.breathPhaseText}>{breathPhase}</Text>
-              </Animated.View>
-              
-              <Text style={styles.breathCountText}>
-                Breaths completed: {breathCount}
-              </Text>
-            </View>
-            
-            {breathCount >= 3 && (
-              <TouchableOpacity
-                style={[styles.completeButton, { backgroundColor: currentActivity.color }]}
-                onPress={completeActivity}
-              >
-                <Text style={styles.buttonText}>Complete Exercise</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        );
-        
+        router.push('/breathing');
+        break;
       case ActivityType.GRATITUDE:
-        return (
-          <View style={styles.activityContent}>
-            <Text style={styles.activityTitle}>Gratitude Practice</Text>
-            <Text style={styles.activityDescription}>
-              {GRATITUDE_PROMPTS[Math.min(gratitudeItems.length, GRATITUDE_PROMPTS.length - 1)]}
-            </Text>
-            
-            <View style={styles.gratitudeContainer}>
-              {gratitudeItems.map((item, idx) => (
-                <View key={idx} style={styles.gratitudeItem}>
-                  <Text style={styles.gratitudeText}>• {item}</Text>
-                </View>
-              ))}
-              
-              {gratitudeItems.length < 3 && (
-                <TouchableOpacity
-                  style={[styles.addButton, { backgroundColor: currentActivity.color }]}
-                  onPress={() => addGratitudeItem('')}
-                >
-                  <Text style={styles.buttonText}>Add Gratitude</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            
-            {gratitudeItems.length >= 3 && (
-              <TouchableOpacity
-                style={[styles.completeButton, { backgroundColor: currentActivity.color }]}
-                onPress={completeActivity}
-              >
-                <Text style={styles.buttonText}>Complete Practice</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        );
-        
-      case ActivityType.AFFIRMATION:
-        return (
-          <View style={styles.activityContent}>
-            <Text style={styles.activityTitle}>Daily Affirmation</Text>
-            <Text style={styles.activityDescription}>
-              Repeat this affirmation aloud or silently to yourself
-            </Text>
-            
-            <View style={styles.affirmationContainer}>
-              <Text style={[styles.affirmationText, { color: currentActivity.color }]}>
-                "{currentAffirmation}"
-              </Text>
-              
-              <TouchableOpacity
-                style={styles.changeButton}
-                onPress={() => {
-                  const randomIndex = Math.floor(Math.random() * AFFIRMATIONS.length);
-                  setCurrentAffirmation(AFFIRMATIONS[randomIndex]);
-                }}
-              >
-                <Text style={styles.smallButtonText}>Try Another</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <TouchableOpacity
-              style={[styles.completeButton, { backgroundColor: currentActivity.color }]}
-              onPress={completeActivity}
-            >
-              <Text style={styles.buttonText}>I've Practiced This Affirmation</Text>
-            </TouchableOpacity>
-          </View>
-        );
-        
+        router.push('/gratitude');
+        break;
+      case ActivityType.GAME:
+        router.push('/memory');
+        break;
+        case ActivityType.MEDITATION:
+          router.push('/meditation');
+          break;
+        case ActivityType.THOUGHT_BUBBLES:
+          router.push('/thoughtbubbles');
+          break;
       default:
-        return null;
+        break;
     }
   };
 
   // Mood selector component
   const MoodSelector = () => {
+    const moodOptions = [
+      { value: 1, icon: 'emoticon-cry-outline', label: 'Down' },
+      { value: 2, icon: 'emoticon-sad-outline', label: 'Low' },
+      { value: 3, icon: 'emoticon-neutral-outline', label: 'Okay' },
+      { value: 4, icon: 'emoticon-happy-outline', label: 'Good' },
+      { value: 5, icon: 'emoticon-excited-outline', label: 'Great' },
+    ];
+  
     return (
       <View style={styles.moodSelector}>
         <Text style={styles.moodQuestion}>How are you feeling today?</Text>
-        <View style={styles.moodOptions}>
-          {[1, 2, 3, 4, 5].map(value => (
-            <TouchableOpacity
-              key={value}
-              style={[
-                styles.moodOption,
-                mood === value && { borderColor: COLORS.primary, borderWidth: 2 }
-              ]}
-              onPress={() => handleMoodSelection(value)}
-            >
-              <Text style={styles.moodEmoji}>
-                {value === 1 ? '😢' : 
-                 value === 2 ? '😕' : 
-                 value === 3 ? '😐' : 
-                 value === 4 ? '🙂' : '😄'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        
+        <ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  contentContainerStyle={[styles.moodScroll, { justifyContent: 'center' }]}
+>
+  <View style={styles.moodRow}>
+    {moodOptions.map((option) => {
+      const isSelected = mood === option.value;
+
+      return (
+        <TouchableOpacity
+          key={option.value}
+          style={[
+            styles.moodOption,
+            isSelected && { backgroundColor: COLORS.primary }
+          ]}
+          onPress={() => handleMoodSelection(option.value)}
+        >
+          <MaterialCommunityIcons
+            name={option.icon}
+            size={28}
+            color={isSelected ? '#fff' : COLORS.text}
+          />
+          <Text
+            style={[
+              styles.moodOptionLabel,
+              isSelected && { color: '#fff' }
+            ]}
+          >
+            {option.label}
+          </Text>
+        </TouchableOpacity>
+      );
+    })}
+  </View>
+</ScrollView>
+
+  
         {moodFeedback !== '' && (
           <Text style={styles.moodFeedback}>{moodFeedback}</Text>
         )}
       </View>
     );
   };
+  
 
   // Loading screen
   if (!fontsLoaded) {
@@ -457,10 +291,11 @@ const MindfulMomentsGame: React.FC = () => {
 
   return (
     <ImageBackground
-        source={require('../assets/images/Bg.jpg')} // Change path to your image
-        style={styles.background}
-        resizeMode="cover"
+      source={require('../assets/images/Bg.jpg')}
+      style={styles.background}
+      resizeMode="cover"
     >
+      <SafeAreaView style={styles.safeArea}>
         <Animated.View
           style={[
             styles.container,
@@ -470,55 +305,55 @@ const MindfulMomentsGame: React.FC = () => {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Mindful Moments</Text>
+            {streak > 0 && (
+              <View style={styles.streakContainer}>
+                <Text style={styles.streakText}>🔥 {streak} day streak</Text>
+              </View>
+            )}
           </View>
           
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             {/* Mood selector */}
             <MoodSelector />
             
-            {/* Activities list */}
-            <View style={styles.activitiesContainer}>
-              <Text style={styles.sectionTitle}>Today's Practices</Text>
+            {/* Quests */}
+            <View style={styles.questsContainer}>
+              <Text style={styles.sectionTitle}>Today's Quests</Text>
               
-              {activities.map(activity => (
-                <TouchableOpacity
-                  key={activity.id}
-                  style={[
-                    styles.activityCard,
-                    { borderColor: activity.color },
-                    activity.completed && styles.completedActivity
-                  ]}
-                  onPress={() => !activity.completed && startActivity(activity)}
-                >
-                  <View style={styles.activityCardContent}>
-                    <Text style={styles.activityCardTitle}>{activity.title}</Text>
-                    <Text style={styles.activityCardDescription}>
-                      {activity.description}
-                    </Text>
-                  </View>
-                  
-                  <View 
+              <View style={styles.questGrid}>
+                {quests.map(quest => (
+                  <TouchableOpacity
+                    key={quest.id}
                     style={[
-                      styles.activityStatus, 
-                      { backgroundColor: activity.completed ? activity.color : 'transparent' }
+                      styles.questButton,
+                      { borderColor: quest.color }
                     ]}
+                    onPress={() => navigateToQuest(quest.type)}
                   >
-                    {activity.completed && (
-                      <Text style={styles.checkmark}>✓</Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <MaterialCommunityIcons
+  name={quest.icon}
+  size={36}
+  color={COLORS.text}
+/>
+                    <Text style={styles.questTitle}>{quest.title}</Text>
+                    <View style={styles.progressBar}>
+                      <View 
+                        style={[
+                          styles.progressFill, 
+                          { 
+                            width: `${(quest.completedSteps / quest.totalSteps) * 100}%`, 
+                            backgroundColor: quest.color 
+                          }
+                        ]} 
+                      />
+                    </View>
+                    <Text style={styles.progressText}>
+                      {quest.completedSteps}/{quest.totalSteps}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-
-            {/* Game Button */}
-            <TouchableOpacity
-            style={styles.gameButton}
-            onPress={() => router.push('/memory')}
-            >
-            <Text style={styles.gameIcon}>🎮</Text>
-            </TouchableOpacity>
-
             
             {/* Quote of the day */}
             <View style={styles.quoteContainer}>
@@ -528,42 +363,110 @@ const MindfulMomentsGame: React.FC = () => {
               <Text style={styles.quoteAuthor}>— {selectedQuote.author}</Text>
             </View>
           </ScrollView>
-          
-          {/* Activity Modal */}
-          <Modal
-            visible={showModal}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowModal(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-              <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setShowModal(false)}
-                >
-                  <Text style={styles.closeButtonText}>×</Text>
-                </TouchableOpacity>
-                
-                {renderActivityContent()}
-              </View>
-            </View>
-          </Modal>
+          <View style={styles.resetButtonWrapper}>
+  <TouchableOpacity
+    onPress={async () => {
+      const initialQuests = {
+        [ActivityType.BREATHING]: false,
+        [ActivityType.GRATITUDE]: false,
+        [ActivityType.GAME]: false,
+        [ActivityType.MEDITATION]: false,
+        [ActivityType.THOUGHT_BUBBLES]: false,
+        breathingSteps: 0,
+        gratitudeSteps: 0,
+        gameSteps: 0,
+        meditationSteps: 0,
+        thoughtBubblesSteps: 0,
+      };
+
+      await AsyncStorage.setItem('quests', JSON.stringify(initialQuests));
+      await AsyncStorage.removeItem('gratitudeItems');
+      await AsyncStorage.removeItem('breathingProgress');
+      await AsyncStorage.removeItem('meditationProgress');
+      await AsyncStorage.removeItem('thoughtBubblesProgress');
+      await AsyncStorage.removeItem('gameProgress');
+
+      const updatedQuests: Quest[] = [
+        {
+          id: '1',
+          type: ActivityType.BREATHING,
+          title: 'Calm Breathing',
+          description: 'Complete 3 breathing exercises',
+          color: COLORS.accent3,
+          totalSteps: 3,
+          completedSteps: 0,
+          completed: false,
+          icon: 'lungs' // ✅ valid MaterialCommunityIcons name
+        },
+        {
+          id: '2',
+          type: ActivityType.GRATITUDE,
+          title: 'Gratitude Practice',
+          description: 'Note 3 things you\'re grateful for',
+          color: COLORS.primary,
+          totalSteps: 3,
+          completedSteps: 0,
+          completed: false,
+          icon: 'hand-heart' // ✅
+        },
+        {
+          id: '3',
+          type: ActivityType.GAME,
+          title: 'Memory Game',
+          description: 'Complete 3 memory games',
+          color: COLORS.accent1,
+          totalSteps: 3,
+          completedSteps: 0,
+          completed: false,
+          icon: 'puzzle' // ✅
+        },
+        {
+          id: '4',
+          type: ActivityType.MEDITATION,
+          title: 'Meditation Timer',
+          description: 'Complete 3 meditation sessions',
+          color: COLORS.accent2,
+          totalSteps: 3,
+          completedSteps: 0,
+          completed: false,
+          icon: 'meditation' // ✅
+        },
+        {
+          id: '5',
+          type: ActivityType.THOUGHT_BUBBLES,
+          title: 'Thought Bubbles',
+          description: 'Pop bubbles to reframe thoughts',
+          color: COLORS.accent2,
+          totalSteps: 3,
+          completedSteps: 0,
+          completed: false,
+          icon: 'comment-processing-outline' // ✅
+        },
+      ];
+      
+
+      setQuests(updatedQuests);
+
+      alert('Quests have been reset.');
+    }}
+    style={styles.resetButton}
+  >
+    <Text style={styles.resetButtonText}>Reset Quests</Text>
+  </TouchableOpacity>
+</View>
         </Animated.View>
+      </SafeAreaView>
     </ImageBackground>
   );
 };
-
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
     width: "100%"
   },
-  overlay: {
+  safeArea: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   container: {
     width: '100%',
@@ -584,11 +487,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 40,
     marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   title: {
     fontFamily: 'EasyCalm',
-    fontSize: 45
-    ,
+    fontSize: 36,
+    color: COLORS.primary,
+    marginRight: 10,
+  },
+  streakContainer: {
+    backgroundColor: 'rgba(237, 178, 64, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  streakText: {
+    fontFamily: 'EasyCalm',
+    fontSize: 16,
     color: COLORS.primary,
   },
   moodSelector: {
@@ -606,21 +522,41 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 10,
   },
-  moodOption: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 5,
+  moodScroll: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
+  
+  moodRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  
+  moodOption: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginHorizontal: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  
+  moodOptionLabel: {
+    fontSize: 14,
+    fontFamily: 'EasyCalm',
+    color: COLORS.text,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  
   moodEmoji: {
     fontSize: 24,
   },
   moodFeedback: {
     fontFamily: 'EasyCalm',
-    fontSize: 22,
+    fontSize: 18,
     color: COLORS.text,
     textAlign: 'center',
     marginTop: 20,
@@ -628,7 +564,7 @@ const styles = StyleSheet.create({
     padding: 5,
     lineHeight: 22,
   },
-  activitiesContainer: {
+  questsContainer: {
     marginTop: 10,
   },
   sectionTitle: {
@@ -637,48 +573,54 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     marginBottom: 15,
   },
-  activityCard: {
+  questGrid: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0)',
-    marginBottom: 15,
-    elevation: 3,
-    shadowColor: '#edb240',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  completedActivity: {
-    opacity: 0.7,
-  },
-  activityCardContent: {
-    flex: 1,
-    padding: 15,
-  },
-  activityCardTitle: {
-    fontFamily: 'EasyCalm',
-    fontSize: 18,
-    color: COLORS.primary,
-    marginBottom: 5,
-  },
-  activityCardDescription: {
-    fontFamily: 'EasyCalm',
-    fontSize: 14,
-    color: COLORS.text,
-    opacity: 0.8,
-  },
-  activityStatus: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  questButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    width: width * 0.43,
+    height: width * 0.43,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginRight: 15,
+    marginBottom: 20,
+    padding: 15,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 2,
   },
-  checkmark: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
+  questIcon: {
+    fontSize: 36,
+    marginBottom: 10,
+  },
+  questTitle: {
+    fontFamily: 'EasyCalm',
+    fontSize: 16,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  progressBar: {
+    width: '90%',
+    height: 8,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 5,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontFamily: 'EasyCalm',
+    fontSize: 12,
+    color: COLORS.text,
   },
   quoteContainer: {
     padding: 20,
@@ -688,197 +630,39 @@ const styles = StyleSheet.create({
   },
   quoteText: {
     fontFamily: 'EasyCalm',
-    fontSize: 24
-    ,
+    fontSize: 20,
     color: COLORS.text,
     textAlign: 'center',
     lineHeight: 26,
   },
   quoteAuthor: {
     fontFamily: 'EasyCalm',
-    fontSize: 18,
+    fontSize: 16,
     color: COLORS.text,
     textAlign: 'right',
     marginTop: 10,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+  resetButtonWrapper: {
+    marginTop: 12
+    ,
+    marginBottom: 5,
     alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
-    position: 'relative',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 15,
-    zIndex: 10,
-  },
-  closeButtonText: {
-    fontSize: 32,
-    color: COLORS.text,
-  },
-  activityContent: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  activityTitle: {
-    fontFamily: 'EasyCalm',
-    fontSize: 26,
-    color: COLORS.text,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  activityDescription: {
-    fontFamily: 'EasyCalm',
-    fontSize: 16,
-    color: COLORS.text,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  patternSelector: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    justifyContent: 'center',
-  },
-  patternButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginHorizontal: 5,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  patternText: {
-    fontFamily: 'EasyCalm',
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  breathingContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-    height: 200, // Fixed height to prevent layout shifts
-  },
-  breathCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 3,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  breathPhaseText: {
-    fontFamily: 'EasyCalm',
-    fontSize: 22,
-    color: COLORS.text,
-  },
-  breathCountText: {
-    fontFamily: 'EasyCalm',
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  gratitudeContainer: {
-    width: '100%',
-    marginVertical: 20,
-  },
-  gratitudeItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  gratitudeText: {
-    fontFamily: 'EasyCalm',
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  affirmationContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  affirmationText: {
-    fontFamily: 'EasyCalm',
-    fontSize: 24,
-    textAlign: 'center',
-    lineHeight: 36,
-    marginBottom: 20,
-  },
-  addButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 30,
-    marginTop: 10,
-  },
-  changeButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  completeButton: {
-    paddingHorizontal: 25,
-    paddingVertical: 15,
-    borderRadius: 30,
-    marginTop: 20,
-  },
-  buttonText: {
-    fontFamily: 'EasyCalm',
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  smallButtonText: {
-    fontFamily: 'EasyCalm',
-    fontSize: 14,
-    color: COLORS.text,
-  },
-
-  button: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 30,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  buttonTextt: {
-    fontFamily: 'EasyCalm',
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-
-  gameButton: {
-    backgroundColor: COLORS.background, // Beige button background
-    width: 70,
-    height: 70,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginTop: 30,
-    marginBottom: 20,
-    shadowColor: COLORS.primary, // Yellow shadow
-    shadowOffset: { width: 2, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    elevation: 5, // Android shadow
   },
   
-  gameIcon: {
-    fontSize: 36,
-    color: COLORS.primary, // Yellow icon on beige background
+  resetButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
   },
+  
+  resetButtonText: {
+    color: '#fff',
+    fontFamily: 'EasyCalm',
+    fontSize: 16,
+  },
+  
   
 });
 
-export default MindfulMomentsGame;
+export default MindfulMomentsHome;
