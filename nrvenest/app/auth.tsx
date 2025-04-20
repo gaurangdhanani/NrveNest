@@ -9,11 +9,30 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 
 const { height } = Dimensions.get('window');
 
 export default function AuthScreen() {
   const router = useRouter();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = () => {
+    if (!email || !password) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    if (!email.includes('@')) {
+      setError('Enter a valid email address.');
+      return;
+    }
+
+    setError('');
+    router.push('/game');
+  };
 
   return (
     <ImageBackground
@@ -21,26 +40,29 @@ export default function AuthScreen() {
       style={styles.background}
       resizeMode="cover"
     >
-      <ScrollView
-        contentContainerStyle={styles.overlay}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.overlay} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>You're One Step Closer</Text>
 
         <TextInput
           placeholder="Email"
           placeholderTextColor="#aaa"
           style={styles.input}
+          value={email}
+          onChangeText={setEmail}
         />
         <TextInput
           placeholder="Password"
           placeholderTextColor="#aaa"
           secureTextEntry
           style={styles.input}
+          value={password}
+          onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/game')}>
-          <Text style={styles.buttonText}>Login</Text>          
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/signup')}>
@@ -106,5 +128,11 @@ const styles = StyleSheet.create({
   linkBold: {
     fontWeight: 'bold',
     color: '#EDB240',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    fontFamily: 'SpaceMono',
+    textAlign: 'center',
   },
 });

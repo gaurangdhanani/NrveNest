@@ -101,7 +101,7 @@ const MindfulMomentsHome: React.FC = () => {
               type: ActivityType.BREATHING,
               title: 'Calm Breathing',
               description: 'Complete 3 breathing exercises',
-              color: COLORS.accent3,
+              color: COLORS.primary,
               totalSteps: 3,
               completedSteps: savedQuests?.breathingSteps || JSON.parse(breathingProgress || '0'),
               completed: savedQuests ? savedQuests[ActivityType.BREATHING] : false,
@@ -145,12 +145,13 @@ const MindfulMomentsHome: React.FC = () => {
               type: ActivityType.THOUGHT_BUBBLES,
               title: 'Thought Bubbles',
               description: 'Pop bubbles to reframe thoughts',
-              color: COLORS.accent2,
+              color: '#7ed6df',
               totalSteps: 3,
               completedSteps: savedQuests?.thoughtBubblesSteps || JSON.parse(thoughtBubblesProgress || '0'),
               completed: savedQuests ? savedQuests[ActivityType.THOUGHT_BUBBLES] : false,
               icon: 'comment-processing-outline'
             }
+            
           ];
           
           ;
@@ -392,7 +393,7 @@ const MindfulMomentsHome: React.FC = () => {
           type: ActivityType.BREATHING,
           title: 'Calm Breathing',
           description: 'Complete 3 breathing exercises',
-          color: COLORS.accent3,
+          color: COLORS.primary,
           totalSteps: 3,
           completedSteps: 0,
           completed: false,
@@ -414,7 +415,7 @@ const MindfulMomentsHome: React.FC = () => {
           type: ActivityType.GAME,
           title: 'Memory Game',
           description: 'Complete 3 memory games',
-          color: COLORS.accent1,
+          color: COLORS.primary,
           totalSteps: 3,
           completedSteps: 0,
           completed: false,
@@ -425,7 +426,7 @@ const MindfulMomentsHome: React.FC = () => {
           type: ActivityType.MEDITATION,
           title: 'Meditation Timer',
           description: 'Complete 3 meditation sessions',
-          color: COLORS.accent2,
+          color: COLORS.primary,
           totalSteps: 3,
           completedSteps: 0,
           completed: false,
@@ -434,9 +435,9 @@ const MindfulMomentsHome: React.FC = () => {
         {
           id: '5',
           type: ActivityType.THOUGHT_BUBBLES,
-          title: 'Thought Bubbles',
+          title: 'Thoughts',
           description: 'Pop bubbles to reframe thoughts',
-          color: COLORS.accent2,
+          color: COLORS.primary,
           totalSteps: 3,
           completedSteps: 0,
           completed: false,
