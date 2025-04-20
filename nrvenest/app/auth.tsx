@@ -39,8 +39,8 @@ export default function AuthScreen() {
           style={styles.input}
         />
 
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Login</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/game')}>
+          <Text style={styles.buttonText}>Login</Text>          
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/signup')}>
